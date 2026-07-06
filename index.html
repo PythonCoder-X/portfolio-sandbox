@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Sandbox</title>
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#14161c; --panel2:#1b1e26; --line:#262a34; --line2:#31374a;
+    --text:#e7e9ef; --muted:#8b91a1; --dim:#5b616f;
+    --green:#22c55e; --red:#f43f5e; --amber:#f59e0b; --violet:#a78bfa; --blue:#60a5fa;
+    --greenb:rgba(34,197,94,.12); --redb:rgba(244,63,94,.12); --amberb:rgba(245,158,11,.12); --violetb:rgba(167,139,250,.14);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{padding:0 0 80px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  a{color:var(--violet)}
+  .num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+
+  /* header */
+  header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d0f14,#0a0b0e);position:sticky;top:0;z-index:20}
+  .head-in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;max-width:1180px;margin:0 auto}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .logo{font-weight:800;letter-spacing:-.02em;font-size:20px}
+  .logo b{color:var(--violet)}
+  .tag{color:var(--muted);font-size:12.5px;letter-spacing:.02em}
+  .head-actions{display:flex;gap:8px}
+  button.ghost{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:9px;padding:7px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  button.ghost:hover{color:var(--text);border-color:#465}
+
+  /* summary */
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 15px;position:relative;overflow:hidden}
+  .card .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px}
+  .card .v{font-size:22px;font-weight:700;font-family:var(--mono);letter-spacing:-.01em}
+  .card .s{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--violet)}
+  .card.green::after{background:var(--green)} .card.red::after{background:var(--red)} .card.amber::after{background:var(--amber)}
+  .card.green .v{color:var(--green)} .card.red .v{color:var(--red)}
+
+  /* controls */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 18px 6px}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:11.5px;color:var(--muted);letter-spacing:.01em}
+  .field .hint{font-size:10.5px;color:var(--dim)}
+  input[type=number],select{background:#0e1014;border:1px solid var(--line2);color:var(--text);border-radius:9px;padding:9px 10px;font-size:14px;font-family:var(--mono);width:100%;outline:none}
+  input[type=number]:focus,select:focus{border-color:var(--violet);box-shadow:0 0 0 3px var(--violetb)}
+  select{font-family:var(--sans)}
+  .combo{display:flex}
+  .combo input{border-top-right-radius:0;border-bottom-right-radius:0;border-right:none}
+  .mode{width:58px;flex:0 0 58px;border:1px solid var(--line2);border-top-left-radius:0;border-bottom-left-radius:0;background:#0e1014;color:var(--violet);font-family:var(--mono);font-weight:700;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0;line-height:1.2}
+  .mode:hover{background:#161922}
+  .row2{display:flex;gap:10px;align-items:center}
+  .presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .preset-btn{background:#0e1014;border:1px solid var(--line2);color:var(--muted);border-radius:7px;padding:4px 9px;font-size:11.5px;font-family:var(--mono);cursor:pointer;transition:.1s}
+  .preset-btn:hover{border-color:var(--violet);color:var(--violet)}
+  .preset-btn.active{border-color:var(--violet);color:var(--violet);background:var(--violetb)}
+
+  details.adv{margin-top:4px;border-top:1px solid var(--line)}
+  details.adv summary{cursor:pointer;padding:14px 2px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);list-style:none}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:"▸ ";color:var(--violet)}
+  details.adv[open] summary::before{content:"▾ "}
+  .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+  .sw{width:38px;height:22px;border-radius:12px;background:#2a2f3d;position:relative;transition:.15s;flex:0 0 38px}
+  .sw::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#8b91a1;top:3px;left:3px;transition:.15s}
+  .toggle.on .sw{background:var(--violetb);box-shadow:inset 0 0 0 1px var(--violet)}
+  .toggle.on .sw::after{left:19px;background:var(--violet)}
+
+  /* years */
+  .years{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+  .yr{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .yr-head{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:14px 16px;cursor:pointer;background:transparent;border:none;width:100%;text-align:left;color:inherit;font-family:inherit}
+  .yr-head:hover{background:var(--panel2)}
+  .yr-title{display:flex;align-items:center;gap:10px}
+  .chev{color:var(--muted);transition:transform .15s;font-size:12px}
+  .yr.open .chev{transform:rotate(90deg)}
+  .yr-year{font-size:17px;font-weight:700;font-family:var(--mono)}
+  .yr-part{font-size:10.5px;color:var(--dim);border:1px solid var(--line2);border-radius:20px;padding:1px 8px}
+  .meter{height:8px;border-radius:6px;background:#0e1014;overflow:hidden;display:flex;min-width:120px;border:1px solid var(--line)}
+  .meter i{display:block;height:100%}
+  .meter .b0{background:#334155}.meter .b15{background:var(--amber)}.meter .b20{background:var(--red)}
+  .yr-stats{display:flex;gap:18px;align-items:center}
+  .stat{text-align:right}
+  .stat .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .stat .n{font-size:14px;font-weight:700;font-family:var(--mono)}
+  .stat .n.g{color:var(--green)} .stat .n.r{color:var(--red)}
+  .yr-body{display:none;border-top:1px solid var(--line)}
+  .yr.open .yr-body{display:block}
+  .tbl-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:8px 10px;text-align:right;white-space:nowrap}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+  th:first-child,td:first-child{text-align:left}
+  td{font-family:var(--mono);border-bottom:1px solid #1a1d25;color:#cfd3dd}
+  tr:hover td{background:#12141a}
+  td.mo{color:var(--text);font-family:var(--sans);font-weight:600}
+  td.g{color:var(--green)} td.r{color:var(--red)} td.a{color:var(--amber)} td.end{color:var(--text);font-weight:700}
+  .yr-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 16px;background:#0e1014;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .yr-foot b{color:var(--violet);font-family:var(--mono)}
+  .reset-note{color:var(--dim)}
+
+  .foot{color:var(--dim);font-size:11.5px;line-height:1.6;margin-top:26px;border-top:1px solid var(--line);padding-top:16px}
+  @media (max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.yr-stats{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <div class="brand">
+      <span class="logo">Portfolio<b>·</b>Sandbox</span>
+      <span class="tag">dividends, growth &amp; a tax bill that resets every January</span>
+    </div>
+    <div class="head-actions">
+      <button class="ghost" id="collapseAll">Collapse all</button>
+      <button class="ghost" id="reset">Reset defaults</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cards" id="cards"></div>
+
+  <div class="panel">
+    <h2>Controls</h2>
+    <div class="grid">
+      <div class="field"><label>Starting portfolio</label>
+        <div class="combo"><input type="number" id="startValue" step="1000"><span class="mode" style="cursor:default">$</span></div></div>
+      <div class="field"><label>Start month</label>
+        <div class="row2"><select id="startMonth"></select><select id="startYear"></select></div></div>
+      <div class="field"><label>Monthly growth</label>
+        <div class="combo"><input type="number" id="monthlyGrowth" step="0.1"><span class="mode" style="cursor:default">%</span></div>
+        <span class="hint">price appreciation per month</span></div>
+      <div class="field"><label>Annual dividend yield</label>
+        <div class="combo"><input type="number" id="annualYield" step="0.1"><span class="mode" style="cursor:default">%</span></div></div>
+
+      <div class="field"><label>Dividend — withdraw</label>
+        <div class="combo"><input type="number" id="divWithdrawValue" step="1"><button class="mode" id="divWithdrawMode">%</button></div>
+        <div class="presets" id="divWithdrawPresets">
+          <span style="font-size:10.5px;color:var(--dim);align-self:center;margin-right:2px">Quick set:</span>
+          <button class="preset-btn" data-val="1000">1k</button>
+          <button class="preset-btn" data-val="2000">2k</button>
+          <button class="preset-btn" data-val="3000">3k</button>
+          <button class="preset-btn" data-val="5000">5k</button>
+          <button class="preset-btn" data-val="8000">8k</button>
+          <button class="preset-btn" data-val="10000">10k</button>
+          <button class="preset-btn" data-val="15000">15k</button>
+          <button class="preset-btn" data-val="20000">20k</button>
+        </div>
+        <span class="hint" id="divWithdrawHint">remainder shows as uninvested cash</span></div>
+      <div class="field"><label>Capital gains — withdraw (realize)</label>
+        <div class="combo"><input type="number" id="gainWithdrawValue" step="1"><button class="mode" id="gainWithdrawMode">%</button></div>
+        <span class="hint">of that month's growth; only this gets taxed</span></div>
+      <div class="field"><label>Monthly cash injection <span style="color:var(--dim);font-size:10px">(Jul onward)</span></label>
+        <div class="combo"><input type="number" id="monthlyInjection" min="0" max="8000" step="500"><span class="mode" style="cursor:default">$</span></div>
+        <div class="presets" id="injectionPresets">
+          <span style="font-size:10.5px;color:var(--dim);align-self:center;margin-right:2px">Quick:</span>
+          <button class="preset-btn" data-inj="0">Off</button>
+          <button class="preset-btn" data-inj="500">500</button>
+          <button class="preset-btn" data-inj="1000">1k</button>
+          <button class="preset-btn" data-inj="2000">2k</button>
+          <button class="preset-btn" data-inj="3000">3k</button>
+          <button class="preset-btn" data-inj="4000">4k</button>
+          <button class="preset-btn" data-inj="5000">5k</button>
+          <button class="preset-btn" data-inj="6000">6k</button>
+          <button class="preset-btn" data-inj="8000">8k</button>
+        </div>
+        <span class="hint" id="injectionHint">compounds into portfolio from month 2</span></div>
+      <div class="field"><label>Horizon</label>
+        <div class="row2"><select id="years"></select></div></div>
+    </div>
+
+    <details class="adv">
+      <summary>Tax engine</summary>
+      <div class="grid" style="padding-top:4px">
+        <div class="field"><label>Other annual income (ordinary)</label>
+          <div class="combo"><input type="number" id="otherIncome" step="1000"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">stacks below your investment income</span></div>
+        <div class="field"><label>Fed 0% bracket up to</label>
+          <div class="combo"><input type="number" id="fedT0" step="1000"><span class="mode" style="cursor:default">$</span></div></div>
+        <div class="field"><label>Fed 15% bracket up to</label>
+          <div class="combo"><input type="number" id="fedT1" step="1000"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">above this = top rate</span></div>
+        <div class="field"><label>Fed top rate</label>
+          <div class="combo"><input type="number" id="fedR2" step="1"><span class="mode" style="cursor:default">%</span></div></div>
+
+        <div class="field"><label>NIIT</label>
+          <div class="toggle" id="niitToggle"><span class="sw"></span><span id="niitLabel">On</span></div></div>
+        <div class="field"><label>NIIT rate</label>
+          <div class="combo"><input type="number" id="niitRate" step="0.1"><span class="mode" style="cursor:default">%</span></div></div>
+        <div class="field"><label>NIIT kicks in above</label>
+          <div class="combo"><input type="number" id="niitThreshold" step="1000"><span class="mode" style="cursor:default">$</span></div></div>
+        <div class="field"><label>Fed 15% rate</label>
+          <div class="combo"><input type="number" id="fedR1" step="1"><span class="mode" style="cursor:default">%</span></div></div>
+
+        <div class="field"><label>State income tax</label>
+          <div class="toggle" id="stateToggle"><span class="sw"></span><span id="stateLabel">Off</span></div></div>
+        <div class="field"><label>State rate</label>
+          <div class="combo"><input type="number" id="stateRate" step="0.05"><span class="mode" style="cursor:default">%</span></div>
+          <span class="hint">flat, applies from dollar one</span></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="years" id="years-list"></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+"use strict";
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const KEY="portfolioSandbox.v1";
+
+const DEFAULTS={
+  startValue:6880800, startMonth:6, startYear:2026, years:10,
+  monthlyGrowth:1.5, annualYield:4.0,
+  divReinvest:{mode:'%',value:100}, divWithdraw:{mode:'%',value:0}, gainWithdraw:{mode:'%',value:0},
+  monthlyInjection:2000,
+  otherIncome:0,
+  fedT0:48350, fedT1:533400, fedR1:15, fedR2:20,
+  niitOn:true, niitRate:3.8, niitThreshold:200000,
+  stateOn:false, stateRate:4.95,
+  expanded:[2026]
+};
+
+let state=load();
+
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.startValue!=null)return Object.assign(structuredClone(DEFAULTS),s);}catch(e){}
+  return structuredClone(DEFAULTS);
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+const fmt0=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+const fmt2=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2});
+const pct=x=>(x*100).toFixed(1)+"%";
+const $=id=>document.getElementById(id);
+
+// ---------- tax engine ----------
+function bracketTax(income){
+  const base=state.otherIncome, lo=base, hi=base+income;
+  const edges=[0,state.fedT0,state.fedT1,Infinity];
+  const rates=[0,state.fedR1/100,state.fedR2/100];
+  let tax=0;
+  for(let k=0;k<3;k++){
+    const oLo=Math.max(lo,edges[k]), oHi=Math.min(hi,edges[k+1]);
+    if(oHi>oLo) tax+=(oHi-oLo)*rates[k];
+  }
+  return tax;
+}
+function niitTax(income){
+  if(!state.niitOn) return 0;
+  const base=state.otherIncome, hi=base+income, lo=base;
+  const above=Math.max(0, hi-Math.max(lo,state.niitThreshold));
+  return above*(state.niitRate/100);
+}
+function stateTax(income){ return state.stateOn ? income*(state.stateRate/100) : 0; }
+function totalTax(cumIncome){ return bracketTax(cumIncome)+niitTax(cumIncome)+stateTax(cumIncome); }
+
+// mode cycles: % → $ → up to → all but
+const MODES=['%','$','up to','all but'];
+function nextMode(m){ const i=MODES.indexOf(m); return MODES[(i+1)%MODES.length]; }
+function modeLabel(m){ return m==='up to'?'≤$': m==='all but'?'all\nbut': m; }
+
+function resolve(setting, base){
+  const v=setting.value, m=setting.mode;
+  if(m==='%')     return base*(v/100);
+  if(m==='$')     return v;
+  if(m==='up to') return Math.min(v, base);           // take up to $X; if div is smaller, fine
+  if(m==='all but') return Math.max(0, base-v);       // withdraw everything except $X reinvested
+  return 0;
+}
+
+function hintText(key){
+  const m=state[key].mode, v=fmt0.format(state[key].value);
+  if(key==='divWithdraw'){
+    if(m==='%')       return `withdraw ${state[key].value}% of after-tax dividend — rest reinvests`;
+    if(m==='$')       return `withdraw exactly ${v}/mo — rest reinvests`;
+    if(m==='up to')   return `withdraw up to ${v} — if div is short, take what's there — rest reinvests`;
+    if(m==='all but') return `withdraw everything except ${v}, which reinvests`;
+  }
+  return '';
+}
+
+// ---------- projection ----------
+function project(){
+  const rows=[]; let portfolio=state.startValue;
+  const g=state.monthlyGrowth/100, y=state.annualYield/100;
+  let curYear=null, ytdIncome=0;
+  const total=state.years*12;
+  for(let i=0;i<total;i++){
+    const abs=(state.startMonth-1)+i;
+    const year=state.startYear+Math.floor(abs/12);
+    const month=abs%12; // 0-11
+    if(year!==curYear){ curYear=year; ytdIncome=0; }
+    const injection = i===0 ? 0 : state.monthlyInjection;
+    const start=portfolio + injection;
+    const growth=start*g;
+    const grossDiv=start*y/12;
+    const gainGross=Math.min(resolve(state.gainWithdraw, growth), growth);
+    const income=grossDiv+gainGross;
+
+    const taxBefore=totalTax(ytdIncome);
+    const taxAfter=totalTax(ytdIncome+income);
+    const monthTax=Math.max(0, taxAfter-taxBefore);
+    ytdIncome+=income;
+
+    const taxDiv = income>0 ? monthTax*grossDiv/income : 0;
+    const taxGain = monthTax-taxDiv;
+    const afterTaxDiv=grossDiv-taxDiv;
+
+    let withdraw=Math.min(resolve(state.divWithdraw, afterTaxDiv), afterTaxDiv);
+    const reinvest=afterTaxDiv-withdraw;
+    const uninvested=0;
+    const gainReinvested=growth-gainGross;
+    const ending=start+gainReinvested+reinvest;
+    portfolio=ending;
+
+    rows.push({year,month,start,growth,grossDiv,gainGross,income,monthTax,afterTaxDiv,
+      reinvest,withdraw,uninvested,gainCash:gainGross-taxGain,ending,ytdIncome,injection});
+  }
+  return rows;
+}
+
+// ---------- render ----------
+function bracketPortion(income){
+  // split a year's investment income into 0/15/20 dollars given otherIncome base
+  const base=state.otherIncome, lo=base, hi=base+income;
+  const edges=[0,state.fedT0,state.fedT1,Infinity]; const out=[0,0,0];
+  for(let k=0;k<3;k++){const a=Math.max(lo,edges[k]),b=Math.min(hi,edges[k+1]);if(b>a)out[k]=b-a;}
+  return out; // [b0,b15,b20] dollars of investment income
+}
+
+function render(){
+  const rows=project();
+  // summary
+  const end=rows.length?rows[rows.length-1].ending:state.startValue;
+  const totalTaxPaid=rows.reduce((a,r)=>a+r.monthTax,0);
+  const totalIncome=rows.reduce((a,r)=>a+r.income,0);
+  const totalWithdrawn=rows.reduce((a,r)=>a+r.withdraw+r.gainCash,0);
+  const eff=totalIncome>0?totalTaxPaid/totalIncome:0;
+  const cards=[
+    {k:"Current portfolio",v:fmt0.format(state.startValue),s:MONTHS[state.startMonth-1]+" "+state.startYear+" start",cls:""},
+    {k:"Projected ending",v:fmt0.format(end),s:state.years+"-yr, reinvested growth",cls:"green"},
+    {k:"Lifetime tax",v:fmt0.format(totalTaxPaid),s:"on "+fmt0.format(totalIncome)+" income",cls:"red"},
+    {k:"Effective tax rate",v:pct(eff),s:"blended, all years",cls:"amber"},
+    {k:"Cash taken out",v:fmt0.format(totalWithdrawn),s:"dividends + realized gains",cls:""},
+  ];
+  $("cards").innerHTML=cards.map(c=>`<div class="card ${c.cls}"><div class="k">${c.k}</div><div class="v">${c.v}</div><div class="s">${c.s}</div></div>`).join("");
+
+  // group by year
+  const byYear={};
+  rows.forEach(r=>{(byYear[r.year]=byYear[r.year]||[]).push(r);});
+  const yearsList=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+
+  $("years-list").innerHTML=yearsList.map(yr=>{
+    const yrRows=byYear[yr];
+    const yrDiv=yrRows.reduce((a,r)=>a+r.grossDiv,0);
+    const yrTax=yrRows.reduce((a,r)=>a+r.monthTax,0);
+    const yrIncome=yrRows[yrRows.length-1].ytdIncome;
+    const yrEnd=yrRows[yrRows.length-1].ending;
+    const partial=yrRows.length<12;
+    const open=state.expanded.includes(yr);
+    const [b0,b15,b20]=bracketPortion(yrIncome);
+    const tot=b0+b15+b20||1;
+    const meter=`<span class="meter" title="0%: ${fmt0.format(b0)} · 15%: ${fmt0.format(b15)} · 20%: ${fmt0.format(b20)}">
+        <i class="b0" style="width:${b0/tot*100}%"></i><i class="b15" style="width:${b15/tot*100}%"></i><i class="b20" style="width:${b20/tot*100}%"></i></span>`;
+    const body=`<div class="yr-body"><div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Month</th><th>Start</th><th style="color:var(--blue)">+ Injection</th><th>Growth</th><th>Gross div</th><th>Reportable YTD</th>
+        <th>Tax</th><th>After-tax div</th><th>Reinvested</th><th>Withdrawn</th><th>Gain out</th><th>Ending</th>
+      </tr></thead><tbody>
+      ${yrRows.map(r=>`<tr>
+        <td class="mo">${MONTHS[r.month]}</td>
+        <td>${fmt0.format(r.start)}</td>
+        <td style="color:var(--blue)">${r.injection>0?'+'+fmt0.format(r.injection):'—'}</td>
+        <td>${fmt0.format(r.growth)}</td>
+        <td class="g">${fmt0.format(r.grossDiv)}</td>
+        <td>${fmt0.format(r.ytdIncome)}</td>
+        <td class="r">${r.monthTax>0?fmt0.format(r.monthTax):"—"}</td>
+        <td>${fmt0.format(r.afterTaxDiv)}</td>
+        <td class="g">${fmt0.format(r.reinvest)}</td>
+        <td class="a">${r.withdraw>0?fmt0.format(r.withdraw):"—"}</td>
+        <td class="a">${r.gainCash>0?fmt0.format(r.gainCash):"—"}</td>
+        <td class="end">${fmt0.format(r.ending)}</td>
+      </tr>`).join("")}
+      </tbody></table></div>
+      <div class="yr-foot">
+        <span class="reset-note">📋 Reportable income ${yr}: <b>${fmt0.format(yrIncome)}</b> — resets to $0 on Jan 1 ${yr+1}</span>
+        <span style="display:flex;gap:20px;align-items:center">
+          <span>Growth this year <b style="color:var(--green)">+${fmt0.format(yrEnd - yrRows[0].start)}</b></span>
+          <span>Dec 31 portfolio value <b>${fmt0.format(yrEnd)}</b></span>
+        </span>
+      </div></div>`;
+    return `<div class="yr ${open?'open':''}" data-year="${yr}">
+      <button class="yr-head" data-year="${yr}">
+        <span class="yr-title"><span class="chev">▶</span><span class="yr-year">${yr}</span>${partial?`<span class="yr-part">${yrRows.length} mo</span>`:''}${meter}</span>
+        <span></span>
+        <span class="yr-stats">
+          <span class="stat"><div class="l">Dividends</div><div class="n g">${fmt0.format(yrDiv)}</div></span>
+          <span class="stat"><div class="l">Tax</div><div class="n r">${fmt0.format(yrTax)}</div></span>
+          <span class="stat"><div class="l">Ending</div><div class="n">${fmt0.format(yrEnd)}</div></span>
+        </span>
+      </button>${body}</div>`;
+  }).join("");
+
+  document.querySelectorAll(".yr-head").forEach(b=>b.addEventListener("click",()=>{
+    const yr=+b.dataset.year;
+    const i=state.expanded.indexOf(yr);
+    if(i>=0)state.expanded.splice(i,1);else state.expanded.push(yr);
+    save();
+    b.parentElement.classList.toggle("open");
+  }));
+
+  const first=rows[0];
+  $("foot").innerHTML=`Toy model — not tax advice. Qualified-dividend / long-term-gain brackets stack on top of your other income and reset each Jan 1.
+    Dividends are taxed the month they're paid; growth is untaxed until you withdraw (realize) it. Brackets are held flat across all years on purpose.
+    First month (${MONTHS[first.month]} ${first.year}) reportable income ${fmt0.format(first.income)} → tax ${fmt0.format(first.monthTax)}. Everything saves locally in this browser.`;
+}
+
+// ---------- bind ----------
+function setNum(id,key){const el=$(id);el.value=state[key];el.addEventListener("input",()=>{state[key]=parseFloat(el.value)||0;save();render();});}
+function setCombo(valId,modeId,key,hintId){
+  const v=$(valId),m=$(modeId),h=hintId?$(hintId):null;
+  const paint=()=>{
+    m.textContent=modeLabel(state[key].mode);
+    m.title=state[key].mode;
+    if(h) h.textContent=hintText(key);
+  };
+  v.value=state[key].value; paint();
+  v.addEventListener("input",()=>{state[key].value=parseFloat(v.value)||0;save();render();if(h)h.textContent=hintText(key);});
+  m.addEventListener("click",()=>{state[key].mode=nextMode(state[key].mode);paint();save();render();});
+}
+function setToggle(id,labId,key,onTxt,offTxt){
+  const t=$(id),l=$(labId);
+  const paint=()=>{t.classList.toggle("on",state[key]);l.textContent=state[key]?onTxt:offTxt;};
+  paint();
+  t.addEventListener("click",()=>{state[key]=!state[key];paint();save();render();});
+}
+
+function initSelects(){
+  const sm=$("startMonth"); sm.innerHTML=MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join(""); sm.value=state.startMonth;
+  const sy=$("startYear"); let opts=""; for(let y=2024;y<=2045;y++)opts+=`<option value="${y}">${y}</option>`; sy.innerHTML=opts; sy.value=state.startYear;
+  const yl=$("years"); yl.innerHTML=[1,2,3,5,10,15,20,25,30].map(n=>`<option value="${n}">${n} year${n>1?'s':''}</option>`).join(""); yl.value=state.years;
+  sm.addEventListener("change",()=>{state.startMonth=+sm.value;save();render();});
+  sy.addEventListener("change",()=>{state.startYear=+sy.value;save();render();});
+  yl.addEventListener("change",()=>{state.years=+yl.value;save();render();});
+}
+
+function init(){
+  initSelects();
+  setNum("startValue","startValue"); setNum("monthlyGrowth","monthlyGrowth"); setNum("annualYield","annualYield");
+  setNum("otherIncome","otherIncome"); setNum("fedT0","fedT0"); setNum("fedT1","fedT1");
+  setNum("fedR1","fedR1"); setNum("fedR2","fedR2"); setNum("niitRate","niitRate"); setNum("niitThreshold","niitThreshold"); setNum("stateRate","stateRate");
+  setCombo("divWithdrawValue","divWithdrawMode","divWithdraw","divWithdrawHint");
+  setCombo("gainWithdrawValue","gainWithdrawMode","gainWithdraw");
+
+  // monthly injection input + presets
+  const injInput=$("monthlyInjection");
+  injInput.value=state.monthlyInjection;
+  injInput.addEventListener("input",()=>{state.monthlyInjection=Math.min(8000,Math.max(0,parseFloat(injInput.value)||0));save();render();});
+  function updateInjPresets(){
+    document.querySelectorAll("#injectionPresets .preset-btn").forEach(b=>{
+      b.classList.toggle("active",+b.dataset.inj===state.monthlyInjection);
+    });
+  }
+  document.querySelectorAll("#injectionPresets .preset-btn").forEach(b=>{
+    b.addEventListener("click",()=>{
+      state.monthlyInjection=+b.dataset.inj;
+      injInput.value=b.dataset.inj;
+      updateInjPresets(); save(); render();
+    });
+  });
+  updateInjPresets();
+
+  // preset buttons — set mode to "up to $X" on click
+  function updatePresets(){
+    document.querySelectorAll("#divWithdrawPresets .preset-btn").forEach(b=>{
+      b.classList.toggle("active", state.divWithdraw.mode==='up to' && +b.dataset.val===state.divWithdraw.value);
+    });
+  }
+  document.querySelectorAll("#divWithdrawPresets .preset-btn").forEach(b=>{
+    b.addEventListener("click",()=>{
+      state.divWithdraw.mode='up to'; state.divWithdraw.value=+b.dataset.val;
+      $("divWithdrawValue").value=b.dataset.val;
+      $("divWithdrawMode").textContent=modeLabel('up to');
+      $("divWithdrawMode").title='up to';
+      $("divWithdrawHint").textContent=hintText('divWithdraw');
+      updatePresets(); save(); render();
+    });
+  });
+  $("divWithdrawValue").addEventListener("input",updatePresets);
+  $("divWithdrawMode").addEventListener("click",updatePresets);
+  updatePresets();
+  setToggle("niitToggle","niitLabel","niitOn","On","Off");
+  setToggle("stateToggle","stateLabel","stateOn","On","Off");
+
+  $("reset").addEventListener("click",()=>{ if(confirm("Reset everything to defaults?")){state=structuredClone(DEFAULTS);save();location.reload();} });
+  $("collapseAll").addEventListener("click",()=>{state.expanded=[];save();render();});
+  render();
+}
+init();
+</script>
+</body>
+</html>
