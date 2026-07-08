@@ -1,5 +1,5 @@
-<!DOCTYPE html> 
-<html lang="en"> 
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -179,14 +179,24 @@
     <details class="adv">
       <summary>Tax engine</summary>
       <div class="grid" style="padding-top:4px">
-        <div class="field"><label>Other annual income (ordinary)</label>
+        <div class="field"><label>Other annual income (ordinary) — default</label>
           <div class="combo"><input type="number" id="otherIncome" step="1000"><span class="mode" style="cursor:default">$</span></div>
-          <span class="hint">stacks below your investment income</span></div>
+          <span class="hint">used for any year without its own override below (edit per-year in each year panel)</span></div>
+        <div class="field"><label>Standard deduction</label>
+          <div class="combo"><input type="number" id="stdDeduction" step="250"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">2026 single filer: $16,100 (IRS Rev. Proc. 2025-32)</span></div>
+        <div class="field"><label>IL personal exemption</label>
+          <div class="combo"><input type="number" id="ilExemption" step="25"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">2026: $2,925 — IL has no standard deduction, uses this instead</span></div>
+        <div class="field"><label>IL exemption phases out above</label>
+          <div class="combo"><input type="number" id="ilExemptionPhaseout" step="10000"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">AGI over this = $0 exemption (2026: $250,000 single)</span></div>
         <div class="field"><label>Fed 0% bracket up to</label>
-          <div class="combo"><input type="number" id="fedT0" step="1000"><span class="mode" style="cursor:default">$</span></div></div>
+          <div class="combo"><input type="number" id="fedT0" step="1000"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">2026 single: $49,450 (taxable income, i.e. after std deduction)</span></div>
         <div class="field"><label>Fed 15% bracket up to</label>
           <div class="combo"><input type="number" id="fedT1" step="1000"><span class="mode" style="cursor:default">$</span></div>
-          <span class="hint">above this = top rate</span></div>
+          <span class="hint">2026 single: $545,500 — above this = top rate</span></div>
         <div class="field"><label>Fed top rate</label>
           <div class="combo"><input type="number" id="fedR2" step="1"><span class="mode" style="cursor:default">%</span></div></div>
 
@@ -195,7 +205,8 @@
         <div class="field"><label>NIIT rate</label>
           <div class="combo"><input type="number" id="niitRate" step="0.1"><span class="mode" style="cursor:default">%</span></div></div>
         <div class="field"><label>NIIT kicks in above</label>
-          <div class="combo"><input type="number" id="niitThreshold" step="1000"><span class="mode" style="cursor:default">$</span></div></div>
+          <div class="combo"><input type="number" id="niitThreshold" step="1000"><span class="mode" style="cursor:default">$</span></div>
+          <span class="hint">$200k single — fixed by law since 2013, never inflation-adjusted</span></div>
         <div class="field"><label>Fed 15% rate</label>
           <div class="combo"><input type="number" id="fedR1" step="1"><span class="mode" style="cursor:default">%</span></div></div>
 
@@ -223,8 +234,10 @@ const DEFAULTS={
   monthlyGrowth:1.5, annualYield:4.0,
   divReinvest:{mode:'%',value:100}, divWithdraw:{mode:'%',value:0}, gainWithdraw:{mode:'%',value:0},
   monthlyInjection:2000,
-  otherIncome:0,
-  fedT0:48350, fedT1:533400, fedR1:15, fedR2:20,
+  otherIncome:58000, stdDeduction:16100,
+  incomeByYear:{2026:36000},
+  ilExemption:2925, ilExemptionPhaseout:250000,
+  fedT0:49450, fedT1:545500, fedR1:15, fedR2:20,
   niitOn:true, niitRate:3.8, niitThreshold:200000,
   stateOn:false, stateRate:4.95,
   expanded:[2026]
@@ -244,8 +257,12 @@ const pct=x=>(x*100).toFixed(1)+"%";
 const $=id=>document.getElementById(id);
 
 // ---------- tax engine ----------
-function bracketTax(income){
-  const base=state.otherIncome, lo=base, hi=base+income;
+function otherIncomeForYear(year){
+  return (state.incomeByYear && state.incomeByYear[year]!=null) ? state.incomeByYear[year] : state.otherIncome;
+}
+function bracketTax(income, otherInc){
+  // taxable ordinary income after standard deduction is what LTCG/qual-div actually stack on top of
+  const base=Math.max(0, otherInc-state.stdDeduction), lo=base, hi=base+income;
   const edges=[0,state.fedT0,state.fedT1,Infinity];
   const rates=[0,state.fedR1/100,state.fedR2/100];
   let tax=0;
@@ -255,14 +272,29 @@ function bracketTax(income){
   }
   return tax;
 }
-function niitTax(income){
+function niitTax(income, otherInc){
   if(!state.niitOn) return 0;
-  const base=state.otherIncome, hi=base+income, lo=base;
+  // NIIT uses MAGI (gross, no standard deduction) vs the threshold
+  const base=otherInc, hi=base+income, lo=base;
   const above=Math.max(0, hi-Math.max(lo,state.niitThreshold));
   return above*(state.niitRate/100);
 }
-function stateTax(income){ return state.stateOn ? income*(state.stateRate/100) : 0; }
-function totalTax(cumIncome){ return bracketTax(cumIncome)+niitTax(cumIncome)+stateTax(cumIncome); }
+function ilExemptionFor(agi){
+  // IL personal exemption phases out entirely once AGI clears the threshold
+  return agi>state.ilExemptionPhaseout ? 0 : state.ilExemption;
+}
+function stateTax(income, otherInc){
+  if(!state.stateOn) return 0;
+  const agiHi=otherInc+income, agiLo=otherInc;
+  const exemption=ilExemptionFor(agiHi);
+  const taxableHi=Math.max(0, agiHi-exemption);
+  const taxableLo=Math.max(0, agiLo-exemption);
+  return (taxableHi-taxableLo)*(state.stateRate/100);
+}
+function totalTax(cumIncome, year){
+  const otherInc=otherIncomeForYear(year);
+  return bracketTax(cumIncome,otherInc)+niitTax(cumIncome,otherInc)+stateTax(cumIncome,otherInc);
+}
 
 // mode cycles: % → $ → up to → all but
 const MODES=['%','$','up to','all but'];
@@ -307,8 +339,8 @@ function project(){
     const gainGross=Math.min(resolve(state.gainWithdraw, growth), growth);
     const income=grossDiv+gainGross;
 
-    const taxBefore=totalTax(ytdIncome);
-    const taxAfter=totalTax(ytdIncome+income);
+    const taxBefore=totalTax(ytdIncome, year);
+    const taxAfter=totalTax(ytdIncome+income, year);
     const monthTax=Math.max(0, taxAfter-taxBefore);
     ytdIncome+=income;
 
@@ -330,9 +362,10 @@ function project(){
 }
 
 // ---------- render ----------
-function bracketPortion(income){
-  // split a year's investment income into 0/15/20 dollars given otherIncome base
-  const base=state.otherIncome, lo=base, hi=base+income;
+function bracketPortion(income, year){
+  // split a year's investment income into 0/15/20 dollars given that year's other income (post-deduction)
+  const otherInc=otherIncomeForYear(year);
+  const base=Math.max(0, otherInc-state.stdDeduction), lo=base, hi=base+income;
   const edges=[0,state.fedT0,state.fedT1,Infinity]; const out=[0,0,0];
   for(let k=0;k<3;k++){const a=Math.max(lo,edges[k]),b=Math.min(hi,edges[k+1]);if(b>a)out[k]=b-a;}
   return out; // [b0,b15,b20] dollars of investment income
@@ -368,7 +401,7 @@ function render(){
     const yrEnd=yrRows[yrRows.length-1].ending;
     const partial=yrRows.length<12;
     const open=state.expanded.includes(yr);
-    const [b0,b15,b20]=bracketPortion(yrIncome);
+    const [b0,b15,b20]=bracketPortion(yrIncome, yr);
     const tot=b0+b15+b20||1;
     const meter=`<span class="meter" title="0%: ${fmt0.format(b0)} · 15%: ${fmt0.format(b15)} · 20%: ${fmt0.format(b20)}">
         <i class="b0" style="width:${b0/tot*100}%"></i><i class="b15" style="width:${b15/tot*100}%"></i><i class="b20" style="width:${b20/tot*100}%"></i></span>`;
@@ -394,7 +427,12 @@ function render(){
       </tbody></table></div>
       <div class="yr-foot">
         <span class="reset-note">📋 Reportable income ${yr}: <b>${fmt0.format(yrIncome)}</b> — resets to $0 on Jan 1 ${yr+1}</span>
-        <span style="display:flex;gap:20px;align-items:center">
+        <span style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+          <span style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10.5px;color:var(--dim)">Other income ${yr}:</span>
+            <input type="number" class="yr-income-input" data-year="${yr}" value="${otherIncomeForYear(yr)}"
+              style="width:90px;background:#0e1014;border:1px solid var(--line2);color:var(--blue);border-radius:6px;padding:3px 6px;font-size:11.5px;font-family:var(--mono)">
+          </span>
           <span>Growth this year <b style="color:var(--green)">+${fmt0.format(yrEnd - yrRows[0].start)}</b></span>
           <span>Dec 31 portfolio value <b>${fmt0.format(yrEnd)}</b></span>
         </span>
@@ -418,6 +456,16 @@ function render(){
     save();
     b.parentElement.classList.toggle("open");
   }));
+
+  document.querySelectorAll(".yr-income-input").forEach(inp=>{
+    inp.addEventListener("click", e=>e.stopPropagation());
+    inp.addEventListener("change", e=>{
+      const yr=+inp.dataset.year;
+      state.incomeByYear=state.incomeByYear||{};
+      state.incomeByYear[yr]=parseFloat(inp.value)||0;
+      save(); render();
+    });
+  });
 
   const first=rows[0];
   $("foot").innerHTML=`Toy model — not tax advice. Qualified-dividend / long-term-gain brackets stack on top of your other income and reset each Jan 1.
@@ -457,7 +505,8 @@ function initSelects(){
 function init(){
   initSelects();
   setNum("startValue","startValue"); setNum("monthlyGrowth","monthlyGrowth"); setNum("annualYield","annualYield");
-  setNum("otherIncome","otherIncome"); setNum("fedT0","fedT0"); setNum("fedT1","fedT1");
+  setNum("otherIncome","otherIncome"); setNum("stdDeduction","stdDeduction"); setNum("fedT0","fedT0"); setNum("fedT1","fedT1");
+  setNum("ilExemption","ilExemption"); setNum("ilExemptionPhaseout","ilExemptionPhaseout");
   setNum("fedR1","fedR1"); setNum("fedR2","fedR2"); setNum("niitRate","niitRate"); setNum("niitThreshold","niitThreshold"); setNum("stateRate","stateRate");
   setCombo("divWithdrawValue","divWithdrawMode","divWithdraw","divWithdrawHint");
   setCombo("gainWithdrawValue","gainWithdrawMode","gainWithdraw");
